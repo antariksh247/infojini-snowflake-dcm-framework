@@ -1,6 +1,8 @@
 name: "01 Test connections"
 
-# Manual: checks that GitHub can log in to Snowflake as the STAGE and PROD CI users
+# Manual: checks that GitHub can log in to Snowflake as the STAGE CI user.
+# PROD is not tested here: the INFOJINI_PROD environment only allows release tags (v*),
+# so its login is checked by the first PROD release (04_deploy_prod.yml).
 on:
   workflow_dispatch:
 
@@ -17,8 +19,6 @@ jobs:
         include:
           - target: INFOJINI_STAGE
             user: INFOJINI_STAGE_CI_SVC
-          - target: INFOJINI_PROD
-            user: INFOJINI_PROD_CI_SVC
     environment: ${{ matrix.target }}
     steps:
       - uses: actions/checkout@v5
