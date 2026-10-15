@@ -1,0 +1,30 @@
+name: "02 PR plan (STAGE)"
+
+# Every PR to main: DCM PLAN against STAGE, posted as a PR comment. Nothing is deployed.
+on:
+  pull_request:
+    branches: ["main"]
+    paths: ["manifest.yml", "sources/**"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: plan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  plan-stage:
+    runs-on: ubuntu-latest
+    environment: INFOJINI_STAGE
+    steps:
+      - uses: actions/checkout@v5
+      - uses: snowflakedb/snowflake-actions/dcm/plan@v3
+        with:
+          target: INFOJINI_STAGE
+          project-path: ./
+          snowflake-user: INFOJINI_STAGE_CI_SVC
+          comment-on-pr: "true"

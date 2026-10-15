@@ -50,5 +50,5 @@ post_deploy/    what DCM can't do yet (e.g. attach masking policies)
 | 4 | First DCM deploy to DEV: DBs, schemas, warehouse, access roles | Workspace DCM panel, target `INFOJINI_DEV`, role `INFOJINI_DEV_DEPLOYER` |
 | 5 | Table, function, proc, views, app table + proc, task | Workspace DCM panel: Plan + Deploy `INFOJINI_DEV` |
 | 6 | dbt: stg_ views in Silver, dim_/fct_ tables in Gold | DCM deploy DEV, `setup/04_dbt.sql`, then `scripts/dbt_dev.sql` |
-| 7 | GitHub Actions: PR plan, STAGE, PROD | coming |
+| 7 | GitHub Actions: PR plan, merge → STAGE, tag + approval → PROD | `setup/05_ci_users.sql`, GitHub Environments, `.github/workflows/` |
 | 8 | Change / rollback / drop-protection tests | coming |

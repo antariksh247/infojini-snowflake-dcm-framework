@@ -1,0 +1,29 @@
+name: "01 Test connections"
+
+# Manual: checks that GitHub can log in to Snowflake as the STAGE and PROD CI users
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  connection-test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: INFOJINI_STAGE
+            user: INFOJINI_STAGE_CI_SVC
+          - target: INFOJINI_PROD
+            user: INFOJINI_PROD_CI_SVC
+    environment: ${{ matrix.target }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: snowflakedb/snowflake-actions/dcm/connection-test@v3
+        with:
+          target: ${{ matrix.target }}
+          project-path: ./
+          snowflake-user: ${{ matrix.user }}
