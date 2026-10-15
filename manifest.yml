@@ -1,0 +1,57 @@
+# DCM project manifest: one codebase, three targets (DEV / STAGE / PROD).
+# Target names = GitHub Environment names (used by the workflows in step 7).
+manifest_version: 2
+type: DCM_PROJECT
+
+default_target: INFOJINI_DEV
+
+targets:
+  INFOJINI_DEV:
+    account_identifier: <ORG>-<ACCOUNT>        # SELECT CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME();
+    project_name: INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_DEV
+    project_owner: INFOJINI_DEV_DEPLOYER
+    templating_config: DEV
+
+  INFOJINI_STAGE:
+    account_identifier: <ORG>-<ACCOUNT>
+    project_name: INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_STAGE
+    project_owner: INFOJINI_STAGE_DEPLOYER
+    templating_config: STAGE
+
+  INFOJINI_PROD:
+    account_identifier: <ORG>-<ACCOUNT>
+    project_name: INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_PROD
+    project_owner: INFOJINI_PROD_DEPLOYER
+    templating_config: PROD
+
+templating:
+  defaults:
+    project: INFOJINI
+    bronze_db: INFOJINI_BRONZE_DB          # shared, same in every env
+    wh_size: XSMALL
+    auto_suspend: 60
+    retention_days: 1
+    # functional roles per access level (account roles come from setup/01_platform.sql)
+    silver_write: []
+    silver_read:  []
+    gold_write:   []
+    gold_read:    []
+
+  configurations:
+    DEV:
+      env: DEV
+      silver_write: [INFOJINI_DATA_ENGINEER]
+      gold_write:   [INFOJINI_DATA_ENGINEER]
+      silver_read:  [INFOJINI_DATA_SCIENTIST]
+      gold_read:    [INFOJINI_DATA_SCIENTIST]
+
+    STAGE:
+      env: STAGE
+      silver_read:  [INFOJINI_DATA_ENGINEER, INFOJINI_DATA_SCIENTIST]
+      gold_read:    [INFOJINI_DATA_ENGINEER, INFOJINI_DATA_SCIENTIST, INFOJINI_ANALYST]
+
+    PROD:
+      env: PROD
+      retention_days: 7
+      silver_read:  [INFOJINI_DATA_ENGINEER, INFOJINI_DATA_SCIENTIST]
+      gold_read:    [INFOJINI_DATA_ENGINEER, INFOJINI_DATA_SCIENTIST, INFOJINI_ANALYST, INFOJINI_BI_SERVICE]

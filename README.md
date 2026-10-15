@@ -46,8 +46,8 @@ post_deploy/    what DCM can't do yet (e.g. attach masking policies)
 |---|---|---|
 | 1 | Platform: roles, admin DB, warehouses, DCM project objects | `setup/01_platform.sql` as ACCOUNTADMIN |
 | 2 | Git connection (API integration + Git repository object) | `setup/02_git.sql` as ACCOUNTADMIN |
-| 3 | Simulated Bronze + read access | coming |
-| 4 | First DCM deploy to DEV (minimal) | coming |
+| 3 | Simulated Bronze + read access | `scripts/simulate_bronze.sql`, then `setup/03_bronze_access.sql` as ACCOUNTADMIN |
+| 4 | First DCM deploy to DEV: DBs, schemas, warehouse, access roles | Workspace DCM panel, target `INFOJINI_DEV`, role `INFOJINI_DEV_DEPLOYER` |
 | 5 | Procs, functions, views, task, app | coming |
 | 6 | dbt | coming |
 | 7 | GitHub Actions: PR plan, STAGE, PROD | coming |
