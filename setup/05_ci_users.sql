@@ -7,6 +7,8 @@
 --   Auth = OIDC (workload identity): no password, no key, no GitHub secret.
 --   GitHub sends a token whose subject names the repo + GitHub Environment;
 --   Snowflake only accepts it if it matches SUBJECT exactly (case-sensitive).
+--   This repo's GitHub subject includes immutable IDs: <owner>@<owner_id>/<repo>@<repo_id>
+--   (exact value is shown in the error of a failed run, if it ever changes).
 --   STAGE user can only act as STAGE deployer, PROD user only as PROD deployer.
 -- =====================================================================
 
@@ -19,7 +21,7 @@ CREATE USER IF NOT EXISTS INFOJINI_STAGE_CI_SVC
   WORKLOAD_IDENTITY = (
     TYPE = OIDC
     ISSUER = 'https://token.actions.githubusercontent.com'
-    SUBJECT = 'repo:antariksh247/infojini-snowflake-dcm-framework:environment:INFOJINI_STAGE'
+    SUBJECT = 'repo:antariksh247@77575313/infojini-snowflake-dcm-framework@1420743951:environment:INFOJINI_STAGE'
   )
   COMMENT = 'GitHub Actions: deploys STAGE (GitHub Environment INFOJINI_STAGE)';
 
@@ -30,9 +32,21 @@ CREATE USER IF NOT EXISTS INFOJINI_PROD_CI_SVC
   WORKLOAD_IDENTITY = (
     TYPE = OIDC
     ISSUER = 'https://token.actions.githubusercontent.com'
-    SUBJECT = 'repo:antariksh247/infojini-snowflake-dcm-framework:environment:INFOJINI_PROD'
+    SUBJECT = 'repo:antariksh247@77575313/infojini-snowflake-dcm-framework@1420743951:environment:INFOJINI_PROD'
   )
   COMMENT = 'GitHub Actions: deploys PROD (GitHub Environment INFOJINI_PROD)';
+
+-- Re-run safe: make sure existing users carry the current subject
+ALTER USER INFOJINI_STAGE_CI_SVC SET WORKLOAD_IDENTITY = (
+  TYPE = OIDC
+  ISSUER = 'https://token.actions.githubusercontent.com'
+  SUBJECT = 'repo:antariksh247@77575313/infojini-snowflake-dcm-framework@1420743951:environment:INFOJINI_STAGE'
+);
+ALTER USER INFOJINI_PROD_CI_SVC SET WORKLOAD_IDENTITY = (
+  TYPE = OIDC
+  ISSUER = 'https://token.actions.githubusercontent.com'
+  SUBJECT = 'repo:antariksh247@77575313/infojini-snowflake-dcm-framework@1420743951:environment:INFOJINI_PROD'
+);
 
 USE ROLE SECURITYADMIN;
 GRANT ROLE INFOJINI_STAGE_DEPLOYER TO USER INFOJINI_STAGE_CI_SVC;
