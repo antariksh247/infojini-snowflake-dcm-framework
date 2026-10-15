@@ -1,0 +1,18 @@
+# Secrets: never commit
+.env
+*.pem
+*.p8
+*.key
+secrets/
+
+# Local / OS
+.DS_Store
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+
+# dbt (later)
+dbt/**/target/
+dbt/**/logs/
+dbt/**/dbt_packages/
