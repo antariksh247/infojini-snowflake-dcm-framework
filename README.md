@@ -49,6 +49,6 @@ post_deploy/    what DCM can't do yet (e.g. attach masking policies)
 | 3 | Simulated Bronze + read access | `scripts/simulate_bronze.sql`, then `setup/03_bronze_access.sql` as ACCOUNTADMIN |
 | 4 | First DCM deploy to DEV: DBs, schemas, warehouse, access roles | Workspace DCM panel, target `INFOJINI_DEV`, role `INFOJINI_DEV_DEPLOYER` |
 | 5 | Table, function, proc, views, app table + proc, task | Workspace DCM panel: Plan + Deploy `INFOJINI_DEV` |
-| 6 | dbt | coming |
+| 6 | dbt: stg_ views in Silver, dim_/fct_ tables in Gold | DCM deploy DEV, `setup/04_dbt.sql`, then `scripts/dbt_dev.sql` |
 | 7 | GitHub Actions: PR plan, STAGE, PROD | coming |
 | 8 | Change / rollback / drop-protection tests | coming |

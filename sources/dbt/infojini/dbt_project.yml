@@ -1,0 +1,20 @@
+name: infojini
+version: "1.0.0"
+config-version: 2
+profile: infojini
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+models:
+  infojini:
+    # every model: give SELECT to the database's READ role (macros/grant_read.sql)
+    +post-hook: "{{ grant_read() }}"
+    staging:
+      +schema: STAGING                 # <ENV>_SILVER_DB.STAGING (profile database)
+      +materialized: view
+    marts:
+      +database: "INFOJINI_{{ target.name | upper }}_GOLD_DB"
+      +schema: MART
+      +materialized: table

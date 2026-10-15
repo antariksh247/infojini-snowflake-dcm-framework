@@ -1,0 +1,11 @@
+SELECT
+  O.ORDER_ID,
+  O.CUSTOMER_ID,
+  O.PRODUCT_ID,
+  O.ORDER_TS::DATE          AS ORDER_DATE,
+  O.STATUS,
+  O.QUANTITY,
+  P.UNIT_PRICE,
+  O.QUANTITY * P.UNIT_PRICE AS AMOUNT
+FROM {{ ref('stg_orders') }} O
+JOIN {{ ref('stg_products') }} P ON P.PRODUCT_ID = O.PRODUCT_ID

@@ -1,0 +1,32 @@
+# Inside Snowflake, account / user / password are not used: dbt runs as the calling user,
+# limited to the role below. Databases, schemas and warehouses are created by DCM.
+infojini:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      account: ""
+      user: ""
+      role: INFOJINI_DEV_DEPLOYER
+      database: INFOJINI_DEV_SILVER_DB
+      schema: STAGING
+      warehouse: INFOJINI_DEV_TRANSFORM_WH
+      threads: 4
+    stage:
+      type: snowflake
+      account: ""
+      user: ""
+      role: INFOJINI_STAGE_DEPLOYER
+      database: INFOJINI_STAGE_SILVER_DB
+      schema: STAGING
+      warehouse: INFOJINI_STAGE_TRANSFORM_WH
+      threads: 4
+    prod:
+      type: snowflake
+      account: ""
+      user: ""
+      role: INFOJINI_PROD_DEPLOYER
+      database: INFOJINI_PROD_SILVER_DB
+      schema: STAGING
+      warehouse: INFOJINI_PROD_TRANSFORM_WH
+      threads: 4
