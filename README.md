@@ -45,7 +45,7 @@ post_deploy/    what DCM can't do yet (e.g. attach masking policies)
 | Step | What | Run |
 |---|---|---|
 | 1 | Platform: roles, admin DB, warehouses, DCM project objects | `setup/01_platform.sql` as ACCOUNTADMIN |
-| 2 | Git connection (for Snowsight Workspace) | coming |
+| 2 | Git connection (API integration + Git repository object) | `setup/02_git.sql` as ACCOUNTADMIN |
 | 3 | Simulated Bronze + read access | coming |
 | 4 | First DCM deploy to DEV (minimal) | coming |
 | 5 | Procs, functions, views, task, app | coming |
