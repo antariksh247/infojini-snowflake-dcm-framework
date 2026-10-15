@@ -7,19 +7,19 @@ default_target: INFOJINI_DEV
 
 targets:
   INFOJINI_DEV:
-    account_identifier: <ORG>-<ACCOUNT>        # SELECT CURRENT_ORGANIZATION_NAME() || '-' || CURRENT_ACCOUNT_NAME();
+    account_identifier: HBISGZI-VK71809
     project_name: INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_DEV
     project_owner: INFOJINI_DEV_DEPLOYER
     templating_config: DEV
 
   INFOJINI_STAGE:
-    account_identifier: <ORG>-<ACCOUNT>
+    account_identifier: HBISGZI-VK71809
     project_name: INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_STAGE
     project_owner: INFOJINI_STAGE_DEPLOYER
     templating_config: STAGE
 
   INFOJINI_PROD:
-    account_identifier: <ORG>-<ACCOUNT>
+    account_identifier: HBISGZI-VK71809
     project_name: INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_PROD
     project_owner: INFOJINI_PROD_DEPLOYER
     templating_config: PROD
