@@ -1,0 +1,21 @@
+-- Gold: reporting view for BI / analysts (Silver + Bronze, owner's rights).
+
+DEFINE VIEW {{ db('GOLD') }}.MART.V_CUSTOMER_ORDERS
+COMMENT = 'One row per order with customer and product details'
+AS
+SELECT
+  C.CUSTOMER_ID,
+  C.FULL_NAME,
+  C.CITY,
+  O.ORDER_ID,
+  O.ORDER_TS,
+  O.STATUS,
+  P.PRODUCT_NAME,
+  P.CATEGORY,
+  O.QUANTITY,
+  O.QUANTITY * P.UNIT_PRICE AS AMOUNT
+FROM {{ bronze_db }}.SOURCE_RAW.ORDERS O
+JOIN {{ db('SILVER') }}.CORE.CUSTOMERS C ON C.CUSTOMER_ID = O.CUSTOMER_ID
+JOIN {{ bronze_db }}.SOURCE_RAW.PRODUCTS P ON P.PRODUCT_ID = O.PRODUCT_ID;
+
+GRANT SELECT ON VIEW {{ db('GOLD') }}.MART.V_CUSTOMER_ORDERS TO DATABASE ROLE {{ db('GOLD') }}.READ;

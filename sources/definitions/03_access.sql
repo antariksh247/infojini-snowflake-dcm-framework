@@ -24,5 +24,5 @@ GRANT USAGE ON SCHEMA {{ db('GOLD') }}.APP    TO DATABASE ROLE {{ db('GOLD') }}.
 {% endfor %}
 
 -- Warehouse usage for everyone who gets data access in this env
-{% for r in (silver_write + silver_read + gold_write + gold_read) | unique %}GRANT USAGE ON WAREHOUSE {{ wh('TRANSFORM') }} TO ROLE {{ r }};
+{% for r in (silver_write + silver_read + gold_write + gold_read + app_users) | unique %}GRANT USAGE ON WAREHOUSE {{ wh('TRANSFORM') }} TO ROLE {{ r }};
 {% endfor %}

@@ -1,0 +1,52 @@
+-- App layer: the app reads through views and writes only through procedures.
+-- Database role GOLD_DB.APP = exactly what the app needs, nothing more.
+
+DEFINE SEQUENCE {{ db('GOLD') }}.APP.NOTE_SEQ START = 1 INCREMENT = 1;
+
+DEFINE TABLE {{ db('GOLD') }}.APP.CUSTOMER_NOTES (
+  NOTE_ID      NUMBER DEFAULT {{ db('GOLD') }}.APP.NOTE_SEQ.NEXTVAL,
+  CUSTOMER_ID  NUMBER,
+  NOTE         VARCHAR,
+  CREATED_AT   TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP()::TIMESTAMP_NTZ
+)
+COMMENT = 'User-entered data from the app (not rebuilt by pipelines)';
+
+DEFINE VIEW {{ db('GOLD') }}.APP.V_CUSTOMER_NOTES
+COMMENT = 'Notes with customer name, read by the app'
+AS
+SELECT N.NOTE_ID, N.CUSTOMER_ID, C.FULL_NAME, N.NOTE, N.CREATED_AT
+FROM {{ db('GOLD') }}.APP.CUSTOMER_NOTES N
+LEFT JOIN {{ db('SILVER') }}.CORE.CUSTOMERS C ON C.CUSTOMER_ID = N.CUSTOMER_ID;
+
+DEFINE PROCEDURE {{ db('GOLD') }}.APP.SP_ADD_NOTE(P_CUSTOMER_ID NUMBER, P_NOTE VARCHAR)
+RETURNS VARCHAR
+LANGUAGE SQL
+EXECUTE AS OWNER
+AS
+$$
+BEGIN
+  IF (P_NOTE IS NULL OR TRIM(P_NOTE) = '') THEN
+    RETURN 'ERROR: note is empty';
+  END IF;
+  INSERT INTO {{ db('GOLD') }}.APP.CUSTOMER_NOTES (CUSTOMER_ID, NOTE) VALUES (:P_CUSTOMER_ID, :P_NOTE);
+  RETURN 'OK';
+END;
+$$;
+
+-- Analysts / engineers (READ / WRITE)
+GRANT SELECT ON TABLE {{ db('GOLD') }}.APP.CUSTOMER_NOTES  TO DATABASE ROLE {{ db('GOLD') }}.READ;
+GRANT SELECT ON VIEW  {{ db('GOLD') }}.APP.V_CUSTOMER_NOTES TO DATABASE ROLE {{ db('GOLD') }}.READ;
+GRANT INSERT, UPDATE, DELETE ON TABLE {{ db('GOLD') }}.APP.CUSTOMER_NOTES TO DATABASE ROLE {{ db('GOLD') }}.WRITE;
+GRANT USAGE ON PROCEDURE {{ db('GOLD') }}.APP.SP_ADD_NOTE(NUMBER, VARCHAR) TO DATABASE ROLE {{ db('GOLD') }}.WRITE;
+
+-- App role: views + write proc only, no direct table access
+DEFINE DATABASE ROLE {{ db('GOLD') }}.APP COMMENT = 'App access: read views, write via procedures';
+GRANT USAGE ON DATABASE {{ db('GOLD') }}        TO DATABASE ROLE {{ db('GOLD') }}.APP;
+GRANT USAGE ON SCHEMA {{ db('GOLD') }}.APP      TO DATABASE ROLE {{ db('GOLD') }}.APP;
+GRANT USAGE ON SCHEMA {{ db('GOLD') }}.MART     TO DATABASE ROLE {{ db('GOLD') }}.APP;
+GRANT SELECT ON VIEW {{ db('GOLD') }}.APP.V_CUSTOMER_NOTES   TO DATABASE ROLE {{ db('GOLD') }}.APP;
+GRANT SELECT ON VIEW {{ db('GOLD') }}.MART.V_CUSTOMER_ORDERS TO DATABASE ROLE {{ db('GOLD') }}.APP;
+GRANT USAGE ON PROCEDURE {{ db('GOLD') }}.APP.SP_ADD_NOTE(NUMBER, VARCHAR) TO DATABASE ROLE {{ db('GOLD') }}.APP;
+
+{% for r in app_users %}GRANT DATABASE ROLE {{ db('GOLD') }}.APP TO ROLE {{ r }};
+{% endfor %}
