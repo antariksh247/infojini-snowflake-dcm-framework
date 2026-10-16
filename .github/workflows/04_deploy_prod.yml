@@ -51,4 +51,4 @@ jobs:
         with:
           use-oidc: true
       - name: dbt deploy + build (PROD, from the tag)
-        run: snow sql -x -f scripts/ci/dbt_deploy.sql -D "env=PROD" -D "target=prod" -D "git_ref=tags/${{ github.ref_name }}"
+        run: snow sql -x -f pipeline/dbt_deploy.sql -D "env=PROD" -D "target=prod" -D "git_ref=tags/${{ github.ref_name }}"

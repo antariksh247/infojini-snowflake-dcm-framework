@@ -4,7 +4,7 @@ name: "03 Deploy STAGE"
 on:
   push:
     branches: ["main"]
-    paths: ["manifest.yml", "sources/**"]
+    paths: ["manifest.yml", "sources/**", "dbt/**", "apps/**"]
   workflow_dispatch:
     inputs:
       allow_drops:
@@ -50,4 +50,4 @@ jobs:
         with:
           use-oidc: true
       - name: dbt deploy + build (STAGE)
-        run: snow sql -x -f scripts/ci/dbt_deploy.sql -D "env=STAGE" -D "target=stage" -D "git_ref=branches/main"
+        run: snow sql -x -f pipeline/dbt_deploy.sql -D "env=STAGE" -D "target=stage" -D "git_ref=branches/main"

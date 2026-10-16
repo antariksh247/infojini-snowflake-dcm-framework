@@ -4,7 +4,7 @@ name: "02 PR plan (STAGE)"
 on:
   pull_request:
     branches: ["main"]
-    paths: ["manifest.yml", "sources/**"]
+    paths: ["manifest.yml", "sources/**", "dbt/**", "apps/**"]
   workflow_dispatch:
 
 permissions:

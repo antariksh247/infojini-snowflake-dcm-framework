@@ -1,54 +1,100 @@
 # infojini-snowflake-dcm-framework
 
-Reusable CI/CD framework for Snowflake projects using **Snowflake DCM Projects** + **dbt** + **GitHub Actions**.
-Project code in this POC: `INFOJINI`. Dummy data only.
+Reusable CI/CD framework for Snowflake projects: **Snowflake DCM Projects** (platform objects) +
+**dbt** (all tables and views) + **GitHub Actions** (promotion). Project code in this POC: `INFOJINI`.
+Dummy data only.
+
+> New to the repo? Read **[DEVELOPER_GUIDE.md](DEVELOPER_GUIDE.md)**: how to build something and get it to PROD.
+
+---
 
 ## Environments
 
-| Env | Purpose | Deployed by | How |
+| Env | What it is | Who changes it | How |
 |---|---|---|---|
-| DEV | Development playground | Data engineers (`INFOJINI_DEV_DEPLOYER`) | Snowsight Workspace: Plan / Deploy |
-| STAGE | Final testing / UAT, equals `main` | CI service user only (`INFOJINI_STAGE_DEPLOYER`) | GitHub Actions on merge to `main` |
-| PROD | Live, equals the latest release tag | CI service user only (`INFOJINI_PROD_DEPLOYER`) | GitHub Actions on tag + approval |
+| **DEV** | Playground + first deploy of converted code | Data engineers | By hand (worksheets) **and** workspace DCM Plan/Deploy target `INFOJINI_DEV`; dbt `--target dev` |
+| **STAGE** | Test environment, = branch `main` | CI user `INFOJINI_STAGE_CI_SVC` only | GitHub Actions on merge to `main` |
+| **PROD** | Live, = latest release tag | CI user `INFOJINI_PROD_CI_SVC` only | GitHub Actions on tag `v*` + approval |
 
-Bronze (`INFOJINI_BRONZE_DB`) is an external, shared source (Fivetran / data share in real projects).
-It is read-only for every environment and not managed by DCM. In this POC it is simulated by a script.
+Bronze (`INFOJINI_BRONZE_DB`) is external (Fivetran / data share), shared and read-only for every env.
 
-## Repo layout
+---
+
+## Repo layout = Snowflake layout
 
 ```
-setup/          admin, once: platform, Git + CI user, Bronze access
-scripts/        POC helpers: simulate Bronze, validation
-manifest.yml    DCM targets INFOJINI_DEV / INFOJINI_STAGE / INFOJINI_PROD + variables
-sources/
-  definitions/  DEFINE statements: databases, schemas, roles, grants, procs, views, tasks, Streamlit
-  macros/       Jinja helpers (naming)
-  dbt/          dbt project (Silver / Gold models)
-post_deploy/    what DCM can't do yet (e.g. attach masking policies)
-.github/        GitHub Actions workflows
+manifest.yml                     environments (DEV, STAGE, PROD) and the values that differ per env
+│
+├── sources/definitions/         DCM — everything EXCEPT tables/views in Silver/Gold
+│   ├── _environment/            warehouses.sql, access.sql (who gets READ/WRITE/APP per env)
+│   ├── SILVER_DB/
+│   │   ├── database.sql         database + access roles READ / WRITE
+│   │   ├── STAGING/schema.sql
+│   │   └── CORE/
+│   │       ├── schema.sql
+│   │       └── tasks/TSK_DBT_BUILD.sql
+│   └── GOLD_DB/
+│       ├── database.sql         database + access roles READ / WRITE / APP
+│       ├── MART/schema.sql
+│       └── APP/
+│           ├── schema.sql
+│           ├── tables/CUSTOMER_NOTES.sql
+│           ├── sequences/NOTE_SEQ.sql
+│           ├── procedures/SP_ADD_NOTE.sql
+│           └── streamlit/STR_CUSTOMER_APP.sql
+├── sources/macros/naming.sql    db('GOLD') -> INFOJINI_<ENV>_GOLD_DB, wh('TRANSFORM') -> INFOJINI_<ENV>_TRANSFORM_WH
+│
+├── dbt/                         dbt — ALL tables and views in Silver/Gold
+│   └── models/
+│       ├── SILVER_DB/STAGING/   stg_*.sql
+│       └── GOLD_DB/
+│           ├── MART/            dim_*.sql, fct_*.sql, v_*.sql
+│           └── APP/             v_*.sql (read views for the app)
+│
+├── apps/STR_CUSTOMER_APP/       Streamlit code of GOLD_DB.APP.STR_CUSTOMER_APP
+├── platform/                    one-time admin scripts (roles, DCM projects, CI users, Git)
+├── pipeline/dbt_deploy.sql      dbt step used by GitHub Actions
+└── .github/workflows/           01 test connection · 02 PR plan · 03 deploy STAGE · 04 deploy PROD
 ```
 
-## Naming convention
+### Where is object X?
+
+| Object | File |
+|---|---|
+| Table / view in Silver or Gold | `dbt/models/<DB>/<SCHEMA>/<name>.sql` |
+| Procedure, function, task, sequence, app table, Streamlit | `sources/definitions/<DB>/<SCHEMA>/<type>/<NAME>.sql` |
+| Database, its access roles | `sources/definitions/<DB>/database.sql` |
+| Schema | `sources/definitions/<DB>/<SCHEMA>/schema.sql` |
+| Warehouse, who gets access per env | `sources/definitions/_environment/` + `manifest.yml` |
+| Streamlit code | `apps/<STREAMLIT_NAME>/` |
+| Account roles, CI users, Git | `platform/` |
+
+Example: `INFOJINI_PROD_GOLD_DB.APP.SP_ADD_NOTE` → `sources/definitions/GOLD_DB/APP/procedures/SP_ADD_NOTE.sql`
+
+---
+
+## Rules
+
+1. **One owner per object.** Tables/views in Silver/Gold = dbt. Everything else = DCM. Never both.
+2. **DCM never references dbt objects** (DCM deploys first). dbt may read DCM objects.
+3. **One object per file, file name = object name.** Folder names have no environment in them.
+4. **Only `manifest.yml` differs per environment.** No `DEV`/`STAGE`/`PROD` in object code — use `{{ db('…') }}` / `{{ wh('…') }}`.
+5. **App data** (written by users) lives in DCM tables, never in dbt models (dbt rebuilds and would wipe it).
+6. **Drops are blocked** on merge / tag. A reviewed drop is re-run manually with `allow_drops`.
+
+## Naming
 
 | Object | Pattern | Example |
 |---|---|---|
-| Env database | `<PROJECT>_<ENV>_<LAYER>_DB` | `INFOJINI_PROD_GOLD_DB` |
-| Shared Bronze | `<PROJECT>_BRONZE_DB` | `INFOJINI_BRONZE_DB` |
-| Warehouse | `<PROJECT>_<ENV>_<PURPOSE>_WH` | `INFOJINI_STAGE_TRANSFORM_WH` |
+| Database | `<PROJECT>_<ENV>_<LAYER>_DB` | `INFOJINI_PROD_GOLD_DB` |
+| Warehouse | `<PROJECT>_<ENV>_<PURPOSE>_WH` | `INFOJINI_PROD_TRANSFORM_WH` |
 | Functional role | `<PROJECT>_<FUNCTION>` | `INFOJINI_ANALYST` |
-| System role | `<PROJECT>_<ENV>_<PURPOSE>` | `INFOJINI_PROD_DEPLOYER` |
-| Database role | `READ` / `WRITE` | `INFOJINI_PROD_GOLD_DB.READ` |
-| Procedure / function / view / task | `SP_` / `FN_` / `V_` / `TSK_` | `SP_LOAD_PATIENTS` |
+| Access role (database role) | `<DB>.READ` / `.WRITE` / `.APP` | `INFOJINI_PROD_GOLD_DB.READ` |
+| Procedure / function / task / Streamlit | `SP_` / `FN_` / `TSK_` / `STR_` | `SP_ADD_NOTE` |
+| dbt models | `stg_` / `int_` / `dim_` / `fct_` / `v_` | `fct_orders` |
 
-## POC steps
+## One-time platform setup (admin)
 
-| Step | What | Run |
-|---|---|---|
-| 1 | Platform: roles, admin DB, warehouses, DCM project objects | `setup/01_platform.sql` as ACCOUNTADMIN |
-| 2 | Git connection (API integration + Git repository object) | `setup/02_git.sql` as ACCOUNTADMIN |
-| 3 | Simulated Bronze + read access | `scripts/simulate_bronze.sql`, then `setup/03_bronze_access.sql` as ACCOUNTADMIN |
-| 4 | First DCM deploy to DEV: DBs, schemas, warehouse, access roles | Workspace DCM panel, target `INFOJINI_DEV`, role `INFOJINI_DEV_DEPLOYER` |
-| 5 | Table, function, proc, views, app table + proc, task | Workspace DCM panel: Plan + Deploy `INFOJINI_DEV` |
-| 6 | dbt: stg_ views in Silver, dim_/fct_ tables in Gold | DCM deploy DEV, `setup/04_dbt.sql`, then `scripts/dbt_dev.sql` |
-| 7 | GitHub Actions: PR plan, merge → STAGE, tag + approval → PROD | `setup/05_ci_users.sql`, GitHub Environments, `.github/workflows/` |
-| 8 | Change / rollback / drop-protection tests | coming |
+Run as ACCOUNTADMIN, in order: `platform/01_platform.sql` … `05_ci_users.sql`
+(+ `platform/poc/simulate_bronze.sql` in the POC only). Then create GitHub Environments
+`INFOJINI_STAGE` and `INFOJINI_PROD` (PROD: required reviewer, tags `v*` only).

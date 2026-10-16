@@ -13,6 +13,7 @@ __pycache__/
 *.pyc
 
 # dbt (later)
+dbt/target/
 dbt/**/target/
 dbt/**/logs/
 dbt/**/dbt_packages/
