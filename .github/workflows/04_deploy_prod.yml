@@ -5,6 +5,14 @@ name: "04 Deploy PROD"
 on:
   push:
     tags: ["v*"]
+  # Manual re-run of a release with drops allowed: "Use workflow from" = the release TAG
+  # (the INFOJINI_PROD environment rejects anything that is not a v* tag).
+  workflow_dispatch:
+    inputs:
+      allow_drops:
+        description: "Allow DROP of database/schema/table/stage (only after reviewing the plan)"
+        type: boolean
+        default: false
 
 permissions:
   id-token: write
@@ -36,7 +44,7 @@ jobs:
           target: INFOJINI_PROD
           project-path: ./
           snowflake-user: INFOJINI_PROD_CI_SVC
-          allow-drops: "false"
+          allow-drops: ${{ inputs.allow_drops == true && 'true' || 'false' }}   # push = always false
 
       # dbt always after DCM (same job: one approval for PROD)
       - uses: snowflakedb/snowflake-actions@v3
