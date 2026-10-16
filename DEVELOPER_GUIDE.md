@@ -5,16 +5,17 @@ How to build something in Snowflake and get it to PROD.
 ```
 1. BUILD in DEV        → like always: worksheets, real names, run and check
 2. COPY into the repo  → right folder, CREATE → DEFINE, DEV name → {{ db('…') }}
-3. PR                  → GitHub shows the STAGE plan as a comment
-4. MERGE               → STAGE is deployed automatically (DCM, then dbt)
+3. DEPLOY DEV from UI  → workspace: DCM Plan + Deploy target INFOJINI_DEV, test again
+4. PR + MERGE          → GitHub: plan comment, then STAGE is deployed automatically
 5. RELEASE             → tag vX.Y.Z + approval → PROD
 ```
+Steps 1–3 happen in Snowsight. Steps 4–5 happen in GitHub — STAGE and PROD are **only** deployed from GitHub.
 
 ---
 
-## 1. Build in DEV (free playground)
+## 1. Build in DEV (playground)
 
-DEV is **not** managed by DCM. Use role `INFOJINI_DATA_ENGINEER` and create anything:
+Use role `INFOJINI_DATA_ENGINEER` and create anything by hand. DCM ignores objects it did not create.
 
 ```sql
 USE ROLE INFOJINI_DATA_ENGINEER;
@@ -78,13 +79,26 @@ New dbt model → also add tests in the folder's `_models.yml` (at least `unique
 Tip: Cortex Code can do the conversion: *"Convert this procedure to a DCM DEFINE file for this repo
 (replace INFOJINI_DEV_GOLD_DB with {{ db('GOLD') }})"*.
 
-## 3. Pull request
+## 3. Deploy DEV from the workspace (UI)
+
+Proves the **converted** files deploy and work.
+
+1. **Drop your hand-made version** of the object (e.g. `DROP PROCEDURE INFOJINI_DEV_GOLD_DB.APP.SP_CLOSE_NOTE(NUMBER);`)
+   so DCM can create and own it.
+2. Make sure your branch is **up to date with `main`** (DEV is shared: deploying a branch without
+   someone else's unmerged DCM object removes that object from DEV — they just redeploy).
+3. Workspace → DCM → target **`INFOJINI_DEV`**, role **`INFOJINI_DEV_DEPLOYER`** → **Plan** → check → **Deploy**.
+4. Test again (`CALL …`, `SELECT …`). For dbt changes: workspace dbt **Build** with target `dev`.
+
+If the workspace shows an `out/` folder under *Changes* — that is plan output, discard it.
+
+## 4. Pull request + merge → STAGE
 
 Branch → commit → PR to `main`. Workflow **02 PR plan** comments the **STAGE plan** on the PR:
 what will be created / altered / dropped. Syntax errors and missing objects show up here.
 Reviewer checks the code **and** the plan.
 
-## 4. Merge → STAGE
+### After merge → STAGE
 
 **03 Deploy STAGE** runs automatically: DCM deploy, then dbt build. Test in STAGE.
 - Plan contains a DROP of a database / schema / table / stage → the deploy is **blocked**.
@@ -99,7 +113,7 @@ Drops: Run workflow → **Use workflow from: tag** `vX.Y.Z` → tick `allow_drop
 
 ## Don'ts
 
-- Don't create objects by hand in STAGE / PROD (you can't — only the CI users can).
+- Don't deploy STAGE / PROD from the UI or create objects there by hand (you can't — only the CI users can).
 - Don't put a table/view in both dbt and DCM.
 - Don't reference a dbt model from a DCM view / procedure.
 - Don't hard-code `DEV` / `STAGE` / `PROD` names in repo files or Streamlit code

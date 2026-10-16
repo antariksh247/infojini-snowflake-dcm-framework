@@ -1,19 +1,28 @@
 # =====================================================================
 # DCM project manifest
-#   targets     : the environments DCM deploys (via GitHub Actions only)
+#   targets     : the environments DCM deploys
+#                 DEV   : developers, from the Snowsight workspace (Plan / Deploy)
+#                 STAGE : GitHub Actions on merge to main
+#                 PROD  : GitHub Actions on release tag + approval
 #   assets      : non-SQL files shipped with the project (Streamlit code)
 #   templating  : the ONLY place where environments differ
 #
-# DEV is not here on purpose: DEV is the developers' free playground
-# (objects created by hand, dbt run with --target dev). See DEVELOPER_GUIDE.md.
+# DEV is also the developers' playground: hand-made objects there are ignored by DCM.
+# See DEVELOPER_GUIDE.md.
 # Target names = GitHub Environment names.
 # =====================================================================
 manifest_version: 2
 type: DCM_PROJECT
 
-default_target: INFOJINI_STAGE
+default_target: INFOJINI_DEV
 
 targets:
+  INFOJINI_DEV:
+    account_identifier: HBISGZI-VK71809
+    project_name: INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_DEV
+    project_owner: INFOJINI_DEV_DEPLOYER
+    templating_config: DEV
+
   INFOJINI_STAGE:
     account_identifier: HBISGZI-VK71809
     project_name: INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_STAGE
@@ -49,6 +58,13 @@ templating:
     app_users:    []                       # Streamlit users (app views + procs only)
 
   configurations:
+    DEV:
+      env: DEV
+      silver_write: [INFOJINI_DATA_ENGINEER]
+      gold_write:   [INFOJINI_DATA_ENGINEER]
+      silver_read:  [INFOJINI_DATA_SCIENTIST]
+      gold_read:    [INFOJINI_DATA_SCIENTIST]
+
     STAGE:
       env: STAGE
       app_users:    [INFOJINI_APP_USER]

@@ -9,8 +9,7 @@
 --   - admin database (DCM project objects + Git integration live here)
 --   - admin + load warehouses
 --   - privileges the deployer roles need to run DCM
---   - the 2 DCM project objects: INFOJINI_STAGE / INFOJINI_PROD
---     (DEV is a free playground, not managed by DCM: platform/06_dev_playground.sql)
+--   - the 3 DCM project objects: INFOJINI_DEV / INFOJINI_STAGE / INFOJINI_PROD
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -33,7 +32,7 @@ ALTER ACCOUNT SET RESOURCE_MONITOR = INFOJINI_RM;
 USE ROLE SECURITYADMIN;
 
 -- Deployers: own everything DCM creates in their environment
-CREATE ROLE IF NOT EXISTS INFOJINI_DEV_DEPLOYER   COMMENT = 'Owns the INFOJINI DEV playground. Held by data engineers';
+CREATE ROLE IF NOT EXISTS INFOJINI_DEV_DEPLOYER   COMMENT = 'Owns INFOJINI DEV (playground + workspace deploys). Held by data engineers';
 CREATE ROLE IF NOT EXISTS INFOJINI_STAGE_DEPLOYER COMMENT = 'Owns INFOJINI STAGE objects. Held only by the CI service user';
 CREATE ROLE IF NOT EXISTS INFOJINI_PROD_DEPLOYER  COMMENT = 'Owns INFOJINI PROD objects. Held only by the CI service user';
 
@@ -49,7 +48,7 @@ CREATE ROLE IF NOT EXISTS INFOJINI_BI_SERVICE     COMMENT = 'Power BI / BI tools
 CREATE ROLE IF NOT EXISTS INFOJINI_APP_USER       COMMENT = 'Uses the Streamlit app';
 
 -- Hierarchy
---   data engineers own the DEV playground (create / change anything there)
+--   data engineers own DEV: create anything by hand + deploy DEV from the workspace
 --   data admin can do everything a data engineer can
 GRANT ROLE INFOJINI_DEV_DEPLOYER  TO ROLE INFOJINI_DATA_ENGINEER;
 GRANT ROLE INFOJINI_DATA_ENGINEER TO ROLE INFOJINI_DATA_ADMIN;
@@ -90,7 +89,7 @@ GRANT USAGE ON DATABASE INFOJINI_ADMIN_DB TO ROLE INFOJINI_DEV_DEPLOYER;
 GRANT USAGE ON DATABASE INFOJINI_ADMIN_DB TO ROLE INFOJINI_STAGE_DEPLOYER;
 GRANT USAGE ON DATABASE INFOJINI_ADMIN_DB TO ROLE INFOJINI_PROD_DEPLOYER;
 
-GRANT USAGE, CREATE STAGE ON SCHEMA INFOJINI_ADMIN_DB.PROJECTS TO ROLE INFOJINI_DEV_DEPLOYER;
+GRANT USAGE, CREATE DCM PROJECT, CREATE STAGE ON SCHEMA INFOJINI_ADMIN_DB.PROJECTS TO ROLE INFOJINI_DEV_DEPLOYER;
 GRANT USAGE, CREATE DCM PROJECT, CREATE STAGE ON SCHEMA INFOJINI_ADMIN_DB.PROJECTS TO ROLE INFOJINI_STAGE_DEPLOYER;
 GRANT USAGE, CREATE DCM PROJECT, CREATE STAGE ON SCHEMA INFOJINI_ADMIN_DB.PROJECTS TO ROLE INFOJINI_PROD_DEPLOYER;
 
@@ -129,7 +128,7 @@ GRANT USAGE, MONITOR ON WAREHOUSE INFOJINI_ADMIN_WH TO ROLE INFOJINI_DATA_ADMIN;
 
 -- ---------------------------------------------------------------------
 -- 6. Your user + DCM project objects (one per environment)
---    INFOJINI_DATA_ADMIN gives you DEV (via data engineer -> DEV deployer = DEV owner).
+--    INFOJINI_DATA_ADMIN gives you DEV (via data engineer -> DEV deployer).
 --    STAGE / PROD deployers are granted to you ONLY for the few lines that
 --    create their project objects, then revoked at the end of this section.
 -- ---------------------------------------------------------------------
@@ -140,8 +139,12 @@ GRANT ROLE INFOJINI_LOADER         TO USER IDENTIFIER($MY_USER);
 GRANT ROLE INFOJINI_STAGE_DEPLOYER TO USER IDENTIFIER($MY_USER);   -- temporary, revoked below
 GRANT ROLE INFOJINI_PROD_DEPLOYER  TO USER IDENTIFIER($MY_USER);   -- temporary, revoked below
 
-USE ROLE INFOJINI_STAGE_DEPLOYER;
+USE ROLE INFOJINI_DEV_DEPLOYER;
 USE WAREHOUSE INFOJINI_ADMIN_WH;
+CREATE DCM PROJECT IF NOT EXISTS INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_DEV
+  COMMENT = 'INFOJINI DEV - deployed by data engineers from the Snowsight workspace';
+
+USE ROLE INFOJINI_STAGE_DEPLOYER;
 CREATE DCM PROJECT IF NOT EXISTS INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_STAGE
   COMMENT = 'INFOJINI STAGE - deployed by GitHub Actions on merge to main';
 GRANT MONITOR ON DCM PROJECT INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_STAGE TO ROLE INFOJINI_DATA_ENGINEER;  -- data admin inherits
@@ -160,11 +163,11 @@ REVOKE ROLE INFOJINI_PROD_DEPLOYER  FROM USER IDENTIFIER($MY_USER);
 -- 7. Checks
 -- ---------------------------------------------------------------------
 USE ROLE ACCOUNTADMIN;
-SHOW DCM PROJECTS IN SCHEMA INFOJINI_ADMIN_DB.PROJECTS;   -- expect INFOJINI_STAGE, INFOJINI_PROD
+SHOW DCM PROJECTS IN SCHEMA INFOJINI_ADMIN_DB.PROJECTS;   -- expect INFOJINI_DEV, INFOJINI_STAGE, INFOJINI_PROD
 SHOW ROLES LIKE 'INFOJINI%';                              -- expect 10
 SHOW WAREHOUSES LIKE 'INFOJINI%';                         -- expect 2
 SHOW GRANTS TO USER IDENTIFIER($MY_USER);                 -- expect INFOJINI_DATA_ADMIN + INFOJINI_LOADER, NO stage/prod deployer
 
 -- As data admin: you can SEE stage / prod projects but not deploy them
 USE ROLE INFOJINI_DATA_ADMIN;
-SHOW DCM PROJECTS IN SCHEMA INFOJINI_ADMIN_DB.PROJECTS;   -- expect to see STAGE and PROD
+SHOW DCM PROJECTS IN SCHEMA INFOJINI_ADMIN_DB.PROJECTS;   -- expect to see all 3

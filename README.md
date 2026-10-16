@@ -12,7 +12,7 @@ Dummy data only.
 
 | Env | What it is | Who changes it | How |
 |---|---|---|---|
-| **DEV** | Free playground, **not managed by DCM** | Data engineers, by hand | Worksheets (`CREATE OR REPLACE …`), workspace dbt `--target dev` |
+| **DEV** | Playground + first deploy of converted code | Data engineers | By hand (worksheets) **and** workspace DCM Plan/Deploy target `INFOJINI_DEV`; dbt `--target dev` |
 | **STAGE** | Test environment, = branch `main` | CI user `INFOJINI_STAGE_CI_SVC` only | GitHub Actions on merge to `main` |
 | **PROD** | Live, = latest release tag | CI user `INFOJINI_PROD_CI_SVC` only | GitHub Actions on tag `v*` + approval |
 
@@ -23,7 +23,7 @@ Bronze (`INFOJINI_BRONZE_DB`) is external (Fivetran / data share), shared and re
 ## Repo layout = Snowflake layout
 
 ```
-manifest.yml                     environments (STAGE, PROD) and the values that differ per env
+manifest.yml                     environments (DEV, STAGE, PROD) and the values that differ per env
 │
 ├── sources/definitions/         DCM — everything EXCEPT tables/views in Silver/Gold
 │   ├── _environment/            warehouses.sql, access.sql (who gets READ/WRITE/APP per env)
@@ -52,7 +52,7 @@ manifest.yml                     environments (STAGE, PROD) and the values that 
 │           └── APP/             v_*.sql (read views for the app)
 │
 ├── apps/STR_CUSTOMER_APP/       Streamlit code of GOLD_DB.APP.STR_CUSTOMER_APP
-├── platform/                    one-time admin scripts (roles, CI users, Git, DEV playground)
+├── platform/                    one-time admin scripts (roles, DCM projects, CI users, Git)
 ├── pipeline/dbt_deploy.sql      dbt step used by GitHub Actions
 └── .github/workflows/           01 test connection · 02 PR plan · 03 deploy STAGE · 04 deploy PROD
 ```
@@ -67,7 +67,7 @@ manifest.yml                     environments (STAGE, PROD) and the values that 
 | Schema | `sources/definitions/<DB>/<SCHEMA>/schema.sql` |
 | Warehouse, who gets access per env | `sources/definitions/_environment/` + `manifest.yml` |
 | Streamlit code | `apps/<STREAMLIT_NAME>/` |
-| Account roles, CI users, Git, DEV playground | `platform/` |
+| Account roles, CI users, Git | `platform/` |
 
 Example: `INFOJINI_PROD_GOLD_DB.APP.SP_ADD_NOTE` → `sources/definitions/GOLD_DB/APP/procedures/SP_ADD_NOTE.sql`
 
@@ -95,6 +95,6 @@ Example: `INFOJINI_PROD_GOLD_DB.APP.SP_ADD_NOTE` → `sources/definitions/GOLD_D
 
 ## One-time platform setup (admin)
 
-Run as ACCOUNTADMIN, in order: `platform/01_platform.sql` … `06_dev_playground.sql`
+Run as ACCOUNTADMIN, in order: `platform/01_platform.sql` … `05_ci_users.sql`
 (+ `platform/poc/simulate_bronze.sql` in the POC only). Then create GitHub Environments
 `INFOJINI_STAGE` and `INFOJINI_PROD` (PROD: required reviewer, tags `v*` only).
