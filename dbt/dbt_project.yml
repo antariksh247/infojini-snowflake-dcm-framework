@@ -1,0 +1,34 @@
+# dbt builds ALL tables and views in Silver and Gold.
+# Folder = where the object lands:  models/<DB>/<SCHEMA>/<model>.sql
+#   models/SILVER_DB/STAGING/stg_x.sql  ->  INFOJINI_<ENV>_SILVER_DB.STAGING.STG_X
+#   models/GOLD_DB/MART/dim_x.sql       ->  INFOJINI_<ENV>_GOLD_DB.MART.DIM_X
+# <ENV> comes from the target: dev / stage / prod (profiles.yml).
+# New schema? Add the folder here AND sources/definitions/<DB>/<SCHEMA>/schema.sql (DCM).
+name: infojini
+version: "1.0.0"
+config-version: 2
+profile: infojini
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+models:
+  infojini:
+    +post-hook: "{{ grant_read() }}"           # SELECT to <DB>.READ on every model
+
+    SILVER_DB:
+      +database: "INFOJINI_{{ target.name | upper }}_SILVER_DB"
+      STAGING:
+        +schema: STAGING
+        +materialized: view
+
+    GOLD_DB:
+      +database: "INFOJINI_{{ target.name | upper }}_GOLD_DB"
+      MART:
+        +schema: MART
+        +materialized: table
+      APP:
+        +schema: APP
+        +materialized: view
+        +post-hook: "{{ grant_app() }}"         # app views also to <DB>.APP

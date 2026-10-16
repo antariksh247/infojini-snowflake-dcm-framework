@@ -1,17 +1,19 @@
-# DCM project manifest: one codebase, three targets (DEV / STAGE / PROD).
-# Target names = GitHub Environment names (used by the workflows in step 7).
+# =====================================================================
+# DCM project manifest
+#   targets     : the environments DCM deploys (via GitHub Actions only)
+#   assets      : non-SQL files shipped with the project (Streamlit code)
+#   templating  : the ONLY place where environments differ
+#
+# DEV is not here on purpose: DEV is the developers' free playground
+# (objects created by hand, dbt run with --target dev). See DEVELOPER_GUIDE.md.
+# Target names = GitHub Environment names.
+# =====================================================================
 manifest_version: 2
 type: DCM_PROJECT
 
-default_target: INFOJINI_DEV
+default_target: INFOJINI_STAGE
 
 targets:
-  INFOJINI_DEV:
-    account_identifier: HBISGZI-VK71809
-    project_name: INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_DEV
-    project_owner: INFOJINI_DEV_DEPLOYER
-    templating_config: DEV
-
   INFOJINI_STAGE:
     account_identifier: HBISGZI-VK71809
     project_name: INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_STAGE
@@ -24,35 +26,29 @@ targets:
     project_owner: INFOJINI_PROD_DEPLOYER
     templating_config: PROD
 
-# Non-SQL files shipped with the project (not Jinja-templated; code must be env-agnostic)
+# Asset files are NOT Jinja-templated: app code must be environment-agnostic.
+# One asset per Streamlit app: name = lower-case app name, path = apps/<APP>/
 assets:
-  customer_app:
-    path: 'assets/streamlit/**/*'
+  str_customer_app:
+    path: 'apps/STR_CUSTOMER_APP/**/*'
 
 templating:
   defaults:
     project: INFOJINI
-    bronze_db: INFOJINI_BRONZE_DB          # shared, same in every env
+    bronze_db: INFOJINI_BRONZE_DB          # shared Bronze, same in every env
     wh_size: XSMALL
     auto_suspend: 60
     retention_days: 1
-    task_state: SUSPENDED                  # DEV / STAGE: tasks exist but never run on their own (EXECUTE TASK to test)
+    task_state: SUSPENDED                  # tasks exist but don't run on their own
     task_schedule: "USING CRON 0 2 * * * Asia/Kolkata"
-    # functional roles per access level (account roles come from setup/01_platform.sql)
+    # Who gets which access role (functional roles come from platform/01_platform.sql)
     silver_write: []
     silver_read:  []
     gold_write:   []
     gold_read:    []
-    app_users:    []                       # roles that use the app (view + proc only)
+    app_users:    []                       # Streamlit users (app views + procs only)
 
   configurations:
-    DEV:
-      env: DEV
-      silver_write: [INFOJINI_DATA_ENGINEER]
-      gold_write:   [INFOJINI_DATA_ENGINEER]
-      silver_read:  [INFOJINI_DATA_SCIENTIST]
-      gold_read:    [INFOJINI_DATA_SCIENTIST]
-
     STAGE:
       env: STAGE
       app_users:    [INFOJINI_APP_USER]
@@ -62,7 +58,7 @@ templating:
     PROD:
       env: PROD
       task_state: STARTED                  # only PROD runs on schedule
-      app_users:    [INFOJINI_APP_USER]
       retention_days: 7
+      app_users:    [INFOJINI_APP_USER]
       silver_read:  [INFOJINI_DATA_ENGINEER, INFOJINI_DATA_SCIENTIST]
       gold_read:    [INFOJINI_DATA_ENGINEER, INFOJINI_DATA_SCIENTIST, INFOJINI_ANALYST, INFOJINI_BI_SERVICE]
