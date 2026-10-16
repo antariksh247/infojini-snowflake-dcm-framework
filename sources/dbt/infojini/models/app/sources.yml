@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: app
+    description: App tables owned by DCM (user-entered data, never rebuilt by dbt)
+    database: "INFOJINI_{{ target.name | upper }}_GOLD_DB"
+    schema: APP
+    tables:
+      - name: CUSTOMER_NOTES

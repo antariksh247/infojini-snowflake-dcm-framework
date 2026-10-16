@@ -14,3 +14,7 @@ models:
           - relationships:
               to: ref('dim_customers')
               field: CUSTOMER_ID
+  - name: v_customer_orders
+    columns:
+      - name: ORDER_ID
+        tests: [unique, not_null]

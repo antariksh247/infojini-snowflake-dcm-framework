@@ -1,0 +1,7 @@
+version: 2
+
+models:
+  - name: v_customer_notes
+    columns:
+      - name: NOTE_ID
+        tests: [unique, not_null]

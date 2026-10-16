@@ -18,3 +18,9 @@ models:
       +database: "INFOJINI_{{ target.name | upper }}_GOLD_DB"
       +schema: MART
       +materialized: table
+    app:
+      # read views for the app; dbt also grants them to the APP database role
+      +database: "INFOJINI_{{ target.name | upper }}_GOLD_DB"
+      +schema: APP
+      +materialized: view
+      +post-hook: "{{ grant_app() }}"
