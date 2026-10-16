@@ -31,7 +31,7 @@ templating:
     wh_size: XSMALL
     auto_suspend: 60
     retention_days: 1
-    task_state: SUSPENDED                  # DEV: tasks never run on their own
+    task_state: SUSPENDED                  # DEV / STAGE: tasks exist but never run on their own (EXECUTE TASK to test)
     task_schedule: "USING CRON 0 2 * * * Asia/Kolkata"
     # functional roles per access level (account roles come from setup/01_platform.sql)
     silver_write: []
@@ -50,14 +50,13 @@ templating:
 
     STAGE:
       env: STAGE
-      task_state: STARTED
       app_users:    [INFOJINI_APP_USER]
       silver_read:  [INFOJINI_DATA_ENGINEER, INFOJINI_DATA_SCIENTIST]
       gold_read:    [INFOJINI_DATA_ENGINEER, INFOJINI_DATA_SCIENTIST, INFOJINI_ANALYST]
 
     PROD:
       env: PROD
-      task_state: STARTED
+      task_state: STARTED                  # only PROD runs on schedule
       app_users:    [INFOJINI_APP_USER]
       retention_days: 7
       silver_read:  [INFOJINI_DATA_ENGINEER, INFOJINI_DATA_SCIENTIST]
