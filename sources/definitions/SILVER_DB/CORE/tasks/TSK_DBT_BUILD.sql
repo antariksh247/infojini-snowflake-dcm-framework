@@ -11,3 +11,6 @@ DEFINE TASK {{ db('SILVER') }}.CORE.TSK_DBT_BUILD
 AS
   EXECUTE DBT PROJECT INFOJINI_ADMIN_DB.PROJECTS.INFOJINI_{{ env }}_DBT
     ARGS = 'build --target {{ env | lower }} --exclude config.materialized:view';
+
+-- See the task + its run history (Snowsight task graph) — read-only
+GRANT MONITOR ON TASK {{ db('SILVER') }}.CORE.TSK_DBT_BUILD TO DATABASE ROLE {{ db('SILVER') }}.READ;
