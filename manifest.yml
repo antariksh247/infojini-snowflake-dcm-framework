@@ -24,6 +24,11 @@ targets:
     project_owner: INFOJINI_PROD_DEPLOYER
     templating_config: PROD
 
+# Non-SQL files shipped with the project (not Jinja-templated; code must be env-agnostic)
+assets:
+  customer_app:
+    path: 'assets/streamlit/**/*'
+
 templating:
   defaults:
     project: INFOJINI
